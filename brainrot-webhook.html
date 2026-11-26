@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brainrot Webhook</title>
+<style>
+:root{
+  --bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:#252535;
+  --accent:#7c5cfc;--accent2:#fc5c8a;--text:#e8e8f4;--muted:#5a5a72;
+  --green:#3ddc84;--red:#ff4f4f;--gold:#ffd700;--og:#ff9f43;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Segoe UI',system-ui,sans-serif;
+  min-height:100vh;
+  padding:20px 14px;
+  padding-top:calc(20px + env(safe-area-inset-top,0px));
+  padding-bottom:calc(80px + env(safe-area-inset-bottom,0px));
+}
+.wrap{max-width:540px;margin:0 auto}
+h1{
+  font-size:1.35rem;font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:2px;
+}
+.sub{color:var(--muted);font-size:.78rem;margin-bottom:18px}
+
+/* tabs */
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tab{
+  flex:1;padding:9px;border:1px solid var(--border);
+  border-radius:8px;background:var(--card);
+  color:var(--muted);font-size:.82rem;font-weight:600;
+  cursor:pointer;text-align:center;transition:all .15s;
+}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.panel{display:none}.panel.active{display:block}
+
+/* card */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:16px;margin-bottom:12px;
+}
+label{font-size:.74rem;color:var(--muted);display:block;margin-bottom:5px}
+input[type=text],input[type=password]{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:7px;padding:9px 12px;color:var(--text);font-size:.88rem;
+  outline:none;transition:border-color .15s;
+}
+input:focus{border-color:var(--accent)}
+input::placeholder{color:var(--muted)}
+
+/* buttons */
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+button{
+  flex:1;padding:10px 14px;border:none;border-radius:7px;
+  font-size:.85rem;font-weight:700;cursor:pointer;
+  transition:opacity .15s,transform .1s;
+}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-auto{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff}
+.btn-stop{background:var(--red);color:#fff}
+.btn-og{background:linear-gradient(90deg,#ff9f43,#ff6b6b);color:#fff;width:100%;margin-top:8px;padding:12px}
+.btn-sm{flex:0 0 auto;padding:9px 12px;background:var(--border);color:var(--muted);font-size:.78rem}
+
+/* status */
+.status{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.8rem;
+}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 1.4s infinite}
+.dot.red{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.status-body{flex:1}
+.status-main{color:var(--text)}
+.status-sub{color:var(--muted);font-size:.72rem;margin-top:1px}
+
+/* progress */
+.prog{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:12px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .6s linear;width:0}
+
+/* log */
+.log-hdr{display:flex;justify-content:space-between;align-items:center;font-size:.74rem;color:var(--muted);margin-bottom:6px}
+.log{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;height:220px;overflow-y:auto;
+  padding:8px;display:flex;flex-direction:column;gap:3px;
+}
+.log::-webkit-scrollbar{width:3px}
+.log::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.le{
+  display:flex;gap:7px;align-items:flex-start;
+  padding:4px 8px;border-radius:5px;background:var(--card);font-size:.76rem;
+}
+.le.ok{border-left:3px solid var(--green)}
+.le.err{border-left:3px solid var(--red)}
+.le.info{border-left:3px solid var(--accent)}
+.le-t{color:var(--muted);flex-shrink:0;font-size:.7rem;padding-top:1px}
+.le-m{flex:1}
+.badge{
+  font-size:.66rem;padding:1px 6px;border-radius:3px;
+  font-weight:700;flex-shrink:0;
+}
+.b-secret{background:#2d1a4a;color:#c084fc}
+.b-og{background:#3d1a00;color:#ff9f43}
+
+/* OG grid */
+.og-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.og-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:9px;padding:12px;cursor:pointer;transition:all .15s;
+  display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+}
+.og-card:hover{border-color:var(--og);background:#1e1810}
+.og-card.selected{border-color:var(--og);background:#251d0f;box-shadow:0 0 10px #ff9f4330}
+.og-card img{width:56px;height:56px;object-fit:contain;border-radius:6px}
+.og-name{font-size:.76rem;font-weight:700;line-height:1.2}
+.og-income{font-size:.68rem;color:var(--og)}
+
+/* secret tier tags */
+.tier-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.tier-tag{font-size:.7rem;padding:2px 9px;border-radius:20px;display:flex;align-items:center;gap:4px}
+.tt-s{background:#2d1a4a;color:#c084fc}
+.tt-rare{background:#1a2d1a;color:#86efac}
+
+/* modal / lock */
+.lock-wrap{background:var(--card);border:1px solid #ff9f4344;border-radius:10px;padding:16px;margin-bottom:12px}
+.lock-title{font-size:.85rem;font-weight:700;color:var(--og);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.lock-warn{font-size:.74rem;color:var(--muted);margin-bottom:10px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Brainrot Webhook</h1>
+  <p class="sub">Envios automáticos pro Discord — Secrets aleatórios + OG manual</p>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('auto')">🎲 Aleatório</div>
+    <div class="tab" onclick="switchTab('og')">👑 OG Manual</div>
+  </div>
+
+  <!-- ── PAINEL AUTO ── -->
+  <div class="panel active" id="panel-auto">
+    <div class="card">
+      <label>URL da Webhook</label>
+      <input type="text" id="whAuto" placeholder="https://discord.com/api/webhooks/...">
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn-primary" onclick="sendOne()">Enviar um agora</button>
+        <button class="btn-auto" id="btnAuto" onclick="startAuto()">▶ Iniciar</button>
+        <button class="btn-stop" id="btnStop" onclick="stopAuto()" disabled>■ Parar</button>
+      </div>
+    </div>
+
+    <div class="status" id="statusBar">
+      <div class="dot" id="dot"></div>
+      <div class="status-body">
+        <div class="status-main" id="statusMain">Aguardando…</div>
+        <div class="status-sub" id="statusSub"></div>
+      </div>
+    </div>
+    <div class="prog"><div class="prog-fill" id="progFill"></div></div>
+
+    <div class="tier-row">
+      <span class="tier-tag tt-s">🔮 Secret top — aparece raramente (20–45 min)</span>
+      <span class="tier-tag tt-rare">⬜ Secret comum — mais frequente (2–10 min)</span>
+    </div>
+
+    <div class="log-hdr">
+      <span>Log</span><span id="sentCount">0 enviados</span>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <!-- ── PAINEL OG ── -->
+  <div class="panel" id="panel-og">
+    <div class="lock-wrap">
+      <div class="lock-title">👑 OG Brainrots — acesso restrito</div>
+      <div class="lock-warn">Só tu podes enviar OGs. Escolhe o brainrot, confirma a webhook e manda.</div>
+
+      <label>Senha de acesso OG</label>
+      <input type="password" id="ogPass" placeholder="Senha...">
+      <div id="ogPassErr" style="color:var(--red);font-size:.72rem;margin-top:4px;display:none">Senha incorreta</div>
+    </div>
+
+    <div id="ogContent" style="display:none">
+      <div class="card" style="margin-bottom:10px">
+        <label>URL da Webhook</label>
+        <input type="text" id="whOg" placeholder="https://discord.com/api/webhooks/...">
+      </div>
+
+      <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Escolhe o OG pra enviar:</p>
+      <div class="og-grid" id="ogGrid"></div>
+
+      <div id="ogSelected" style="display:none;background:var(--card);border:1px solid var(--og);border-radius:9px;padding:14px;margin-bottom:10px">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">Selecionado:</div>
+        <div id="ogSelectedName" style="font-weight:700;color:var(--og);font-size:1rem"></div>
+        <div id="ogSelectedIncome" style="font-size:.74rem;color:var(--muted);margin-top:2px"></div>
+        <button class="btn-og" onclick="sendOG()">👑 Enviar este OG agora</button>
+      </div>
+    </div>
+
+    <div id="ogLocked" style="text-align:center;padding:20px 0">
+      <div style="font-size:2rem;margin-bottom:8px">🔒</div>
+      <button class="btn-primary" style="max-width:160px;margin:0 auto;display:block" onclick="unlockOG()">Desbloquear</button>
+    </div>
+
+    <div class="log-hdr" style="margin-top:14px">
+      <span>Log OG</span><span id="ogSentCount">0 enviados</span>
+    </div>
+    <div class="log" id="logOg"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// SENHA OG — muda aqui
+const OG_PASSWORD = "odyssey2026";
+// ═══════════════════════════════════════════════════════
+
+// ── Mutations reais ──────────────────────────────────
+const MUTATIONS = [
+  {name:"Gold",    mult:1.25, color:0xFFD700, e:"🟨"},
+  {name:"Diamond", mult:1.50, color:0x00CFFF, e:"💎"},
+  {name:"Rainbow", mult:10,   color:0xFF69B4, e:"🌈"},
+  {name:"Lava",    mult:6,    color:0xFF4500, e:"🌋"},
+  {name:"Galaxy",  mult:6,    color:0x9B59B6, e:"🌌"},
+  {name:"Yin Yang",mult:7.5,  color:0xEEEEEE, e:"☯️"},
+  {name:"Bloodrot",mult:2,    color:0x8B0000, e:"🩸"},
+  {name:"Celestial",mult:4,   color:0x87CEEB, e:"✨"},
+  {name:"Candy",   mult:4,    color:0xFF80AB, e:"🍬"},
+];
+const MUT_W = [42,32,2,5,3,2,7,4,3];
+
+// ── Traits reais ─────────────────────────────────────
+const TRAITS = [
+  {n:"Rain",             m:2.5, e:"🌧️"},
+  {n:"Snow",             m:3,   e:"❄️"},
+  {n:"Starfall",         m:3.5, e:"⭐"},
+  {n:"Raining Tacos",    m:3,   e:"🌮"},
+  {n:"10B",              m:3,   e:"💰"},
+  {n:"UFO",              m:3,   e:"🛸"},
+  {n:"Shark",            m:3,   e:"🦈"},
+  {n:"Sleepy",           m:3,   e:"💤"},
+  {n:"Extinct",          m:4,   e:"🦕"},
+  {n:"Bombardiro",       m:4,   e:"💣"},
+  {n:"La Vacca",         m:4,   e:"🐄"},
+  {n:"Tung Tung Attack", m:4,   e:"🥁"},
+  {n:"Spider",           m:4.5, e:"🕷️"},
+  {n:"Witch",            m:4.5, e:"🧙"},
+  {n:"Tie",              m:4.75,e:"👔"},
+  {n:"Glitch",           m:5,   e:"👾"},
+  {n:"Fire",             m:5,   e:"🔥"},
+  {n:"Crab Rave",        m:5,   e:"🦀"},
+  {n:"Concert",          m:5,   e:"🎵"},
+  {n:"Matteo",           m:5,   e:"👤"},
+  {n:"Mexico",           m:5,   e:"🇲🇽"},
+  {n:"RIP",              m:5,   e:"💀"},
+  {n:"Indonesia",        m:5,   e:"🇮🇩"},
+  {n:"4th of July",      m:6,   e:"🎆"},
+  {n:"Nyan Cats",        m:6,   e:"🐱"},
+  {n:"Brazil",           m:6,   e:"🇧🇷"},
+  {n:"Lightning",        m:6,   e:"⚡"},
+  {n:"Paint",            m:6,   e:"🎨"},
+  {n:"Meowl",            m:7,   e:"🦉"},
+  {n:"Strawberry",       m:8,   e:"🍓"},
+];
+const TR_W = [30,25,20,20,20,20,20,20,15,15,15,15,10,10,10,8,8,8,8,8,8,8,8,5,5,5,5,5,3,2];
+
+// ── OG Brainrots ─────────────────────────────────────
+const OGS = [
+  {name:"Skibidi Toilet",    cost:"$450B",  income:"$450,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Skibidi-Toilet.png"},
+  {name:"John Pork",         cost:"$500B",  income:"$500,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/John-Pork.webp"},
+  {name:"Headless Horseman", cost:"$550B",  income:"$550,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/10/Headless-Horseman.png"},
+  {name:"Meowl",             cost:"$600B",  income:"$600,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/08/Meowl.png"},
+  {name:"Strawberry Elephant",cost:"$750B", income:"$750,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/09/Strawberry-Elephant.png"},
+  {name:"Spyder Elephant",   cost:"$1T",    income:"$1,000,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Spyder-Elephant.webp"},
+];
+
+// ── Secrets — dois grupos por raridade de aparição ───
+// top (raros) — aparecem de 20–45 min
+// common — aparecem de 2–10 min
+const SECRETS_TOP = [
+  {n:"Tralalalaledon",         i:"$37,500,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Tralaledon.png"},
+  {n:"Garama and Madundung",   i:"$50,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Garama-and-Madundung.png"},
+  {n:"La Anniversary Grande",  i:"$50,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/La-Anniversary-Grande.webp"},
+  {n:"Jolly Jolly Sahur",      i:"$45,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/12/Jolly-Jolly-Sahur.png"},
+  {n:"Money Money Bros",       i:"$47,000,000/s", img:"https://techwiser.com/wp-content/uploads/2026/04/Money-Money-Bros.png"},
+  {n:"Gym Bros",               i:"$42,500,000/s", img:"https://techwiser.com/wp-content/uploads/2026/04/Gym-Bros.png"},
+  {n:"Orcaledon",              i:"$40,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Orcaledon.png"},
+  {n:"Eviledon",               i:"$31,500,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Eviledon.png"},
+  {n:"Abyssaloco",             i:"$33,330,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Abyssaloco.webp"},
+  {n:"W or L",                 i:"$30,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/W-or-L.png"},
+  {n:"Tralaledon",             i:"$27,500,000/s", img:"https://techwiser.com/wp-content/uploads/2025/11/Tralaledon.png"},
+  {n:"Chillin Chili",          i:"$25,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Chillin-Chili.png"},
+  {n:"Tang Tang Kelentang",    i:"$33,500,000/s", img:"https://techwiser.com/wp-content/uploads/2025/09/Tang-Tang-Keletang.png"},
+  {n:"Ketupat Kepat",          i:"$35,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Ketupat-Kepat-1.png"},
+  {n:"Los Combinasionas",      i:"$15,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/08/Los-Combinasionas.webp"},
+  {n:"Mariachi Corazoni",      i:"$12,500,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Mariachi-Corazoni.png"},
+  {n:"Tacorillo Crocodillo",   i:"$12,500,000/s", img:"https://techwiser.com/wp-content/uploads/2025/09/Tacorillo-Crocodillo.png"},
+  {n:"Swag Soda",              i:"$13,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/Swag-Soda.png"},
+  {n:"La Grande Combinassion", i:"$10,000,000/s", img:"https://techwiser.com/wp-content/uploads/2025/07/La-Grande-Combinasion.png"},
+  {n:"Guest 666",              i:"$6,600,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/Guest-666.png"},
+];
+const SECRETS_COMMON = [
+  {n:"La Vacca Saturno Saturnita",i:"$250,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/La-Vacca-Saturno-Saturnita.png"},
+  {n:"Blackhole Goat",           i:"$400,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/Blackhole-Goat-1.png"},
+  {n:"Chachechi",                i:"$400,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/Chachechi-1.png"},
+  {n:"Los Tortus",               i:"$500,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/Los-Tortus.webp"},
+  {n:"Zombie Tralala",           i:"$500,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/Zombie-Tralala.png"},
+  {n:"Los Tralaleritos",         i:"$750,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/Los-Tralaleritos.png"},
+  {n:"Graipuss Medussi",         i:"$1,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Graipuss-Medussi.webp"},
+  {n:"GOAT",                     i:"$950,000/s",  img:"https://techwiser.com/wp-content/uploads/2025/07/GOAT.png"},
+  {n:"Perrito Burrito",          i:"$1,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Perrito-Burrito.webp"},
+  {n:"Nooo My Hotspot",          i:"$2,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Nooo-My-Hotspot.png"},
+  {n:"Telemorte",                i:"$2,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/10/Telemorte.png"},
+  {n:"Glaciator",                i:"$2,300,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Glaciator.webp"},
+  {n:"Quesadilla Crocodila",     i:"$3,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/09/Quesadilla-Crocodila.png"},
+  {n:"Chicleteira Bicicleteira", i:"$3,500,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Chicleteira-Bicicleteira.png"},
+  {n:"Chill Puppy",              i:"$4,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/08/Chill-Puppy.png"},
+  {n:"Granny",                   i:"$4,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Granny.png"},
+  {n:"Arcadopus",                i:"$5,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Arcadopus.webp"},
+  {n:"Serafinna Medusella",      i:"$5,500,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Serafinna-Medusella.png"},
+  {n:"Tang Tang Kelentang",      i:"$33,500,000/s",img:"https://techwiser.com/wp-content/uploads/2025/09/Tang-Tang-Keletang.png"},
+  {n:"Ketupat Kepat",            i:"$35,000,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Ketupat-Kepat-1.png"},
+  {n:"Los Bros",                 i:"$37,500,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Los-Bros.png"},
+  {n:"Tictac Sahur",             i:"$37,500,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Tictac-Sahur-1.png"},
+  {n:"Abyssaloco",               i:"$33,330,000/s",img:"https://techwiser.com/wp-content/uploads/2025/07/Abyssaloco.webp"},
+];
+
+// ── Helpers ──────────────────────────────────────────
+const rng = ()=>Math.random();
+function wRand(arr,ws){
+  const t=ws.reduce((a,b)=>a+b,0);let r=rng()*t;
+  for(let i=0;i<arr.length;i++){r-=ws[i];if(r<=0)return arr[i];}
+  return arr[arr.length-1];
+}
+function pickMut(){return wRand(MUTATIONS,MUT_W)}
+function pickTraits(){
+  const n=rng()<.3?2:1;const out=[];const used=new Set();
+  for(let i=0;i<n;i++){
+    for(let t=0;t<30;t++){
+      const tr=wRand(TRAITS,TR_W);
+      if(!used.has(tr.n)){out.push(tr);used.add(tr.n);break;}
+    }
+  }
+  return out;
+}
+function pickOthers(main,count=3){
+  const all=[...SECRETS_TOP,...SECRETS_COMMON];
+  const out=[];const used=new Set([main]);
+  while(out.length<count){
+    const b=all[Math.floor(rng()*all.length)];
+    if(!used.has(b.n)){out.push(b);used.add(b.n);}
+  }
+  return out;
+}
+function fmt(d){return d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+function fmtDelay(s){
+  if(s<60)return`${s}s`;
+  if(s<3600)return`${Math.floor(s/60)}min`;
+  const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);
+  return m?`${h}h ${m}min`:`${h}h`;
+}
+function incomeVal(str){
+  const m=str.match(/\$([\d,.]+)/);if(!m)return 0;
+  let v=parseFloat(m[1].replace(/,/g,""));
+  if(str.includes("B/s"))v*=1e9;
+  else if(str.includes("M/s"))v*=1e6;
+  else if(str.includes("K/s"))v*=1e3;
+  return v;
+}
+function fmtIncome(v){
+  if(v>=1e9)return`$${(v/1e9).toFixed(2)}B/s`;
+  if(v>=1e6)return`$${(v/1e6).toFixed(2)}M/s`;
+  if(v>=1e3)return`$${(v/1e3).toFixed(1)}K/s`;
+  return`$${Math.round(v).toLocaleString("en-US")}/s`;
+}
+
+// ── State ────────────────────────────────────────────
+let running=false,tid=null,progInt=null,sent=0,ogSent=0;
+let selectedOG=null,ogUnlocked=false;
+
+// ── CORS fix via Discord proxy ────────────────────────
+// Discord webhooks bloqueiam fetch direto do browser.
+// Usamos o endpoint /api/webhooks/ com mode: no-cors não dá resposta.
+// A solução real: proxy. Usamos cors-anywhere público ou o próprio endpoint com fetch normal.
+// Discord na verdade PERMITE fetch de webhook POST com Content-Type application/json
+// desde que a origem não seja bloqueada. O problema anterior era o Content-Type errado.
+async function postWebhook(url, payload){
+  const r = await fetch(url, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload)
+  });
+  if(!r.ok){
+    let msg="";
+    try{const j=await r.json();msg=j.message||JSON.stringify(j);}catch{msg=`HTTP ${r.status}`;}
+    throw new Error(msg);
+  }
+}
+
+// ── Build embeds ─────────────────────────────────────
+function buildSecretEmbed(br){
+  const mut=pickMut();
+  const traits=pickTraits();
+  const others=pickOthers(br.n,3);
+
+  const base=incomeVal(br.i);
+  const tmult=mut.mult+traits.reduce((a,t)=>a+t.m,0);
+  const boosted=fmtIncome(base*tmult);
+  const traitStr=traits.map(t=>`${t.e} ${t.n} (${t.m}×)`).join("  ")||"—";
+  const otherStr=others.map(o=>{
+    const om=pickMut();
+    return`\`1x\` ${om.e} **${o.n}** — **${o.i}**`;
+  }).join("\n");
+
+  return {
+    embeds:[{
+      title:"Odyssey • Ultralights",
+      thumbnail:{url:br.img},
+      color:mut.color,
+      fields:[
+        {
+          name:`${mut.e} **${br.n}** [Secret]`,
+          value:[
+            `**Base Income:** ${br.i}`,
+            `**Mutation:** ${mut.e} ${mut.name} (${mut.mult}×)`,
+            `**Trait${traits.length>1?"s":""}:** ${traitStr}`,
+            `**Boosted:** ~${boosted} (${tmult.toFixed(2)}× total)`,
+          ].join("\n"),
+        },
+        {name:"Other",value:otherStr},
+      ],
+      footer:{text:`discord.gg/odyss3y  |  ${new Date().toLocaleString("pt-BR",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}`},
+    }]
+  };
+}
+
+function buildOGEmbed(og){
+  const mut=pickMut();
+  const traits=pickTraits();
+  const others=pickOthers("__og__",3);
+
+  const base=incomeVal(og.income);
+  const tmult=mut.mult+traits.reduce((a,t)=>a+t.m,0);
+  const boosted=fmtIncome(base*tmult);
+  const traitStr=traits.map(t=>`${t.e} ${t.n} (${t.m}×)`).join("  ")||"—";
+  const otherStr=others.map(o=>{
+    const om=pickMut();
+    return`\`1x\` ${om.e} **${o.n}** — **${o.i}**`;
+  }).join("\n");
+
+  return {
+    embeds:[{
+      title:"Odyssey • Ultralights",
+      thumbnail:{url:og.img},
+      color:0xFF9F43,
+      fields:[
+        {
+          name:`👑 **${og.name}** [OG]`,
+          value:[
+            `**Cost:** ${og.cost}`,
+            `**Base Income:** ${og.income}`,
+            `**Mutation:** ${mut.e} ${mut.name} (${mut.mult}×)`,
+            `**Trait${traits.length>1?"s":""}:** ${traitStr}`,
+            `**Boosted:** ~${boosted} (${tmult.toFixed(2)}× total)`,
+          ].join("\n"),
+        },
+        {name:"Other",value:otherStr},
+      ],
+      footer:{text:`discord.gg/odyss3y  |  ${new Date().toLocaleString("pt-BR",{day:"2-digit",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"})}`},
+    }]
+  };
+}
+
+// ── UI helpers ───────────────────────────────────────
+function getUrl(id){
+  const v=document.getElementById(id).value.trim();
+  if(!v.startsWith("https://discord.com/api/webhooks/")){
+    addLog("URL inválida","err",null,"log");return null;
+  }
+  return v;
+}
+
+function addLog(msg,type,badge,logId){
+  const el=document.getElementById(logId||"log");
+  const e=document.createElement("div");
+  e.className=`le ${type}`;
+  const t=document.createElement("span");t.className="le-t";t.textContent=fmt(new Date());
+  const m=document.createElement("span");m.className="le-m";m.textContent=msg;
+  e.appendChild(t);
+  if(badge){const b=document.createElement("span");b.className=`badge ${badge}`;b.textContent=badge==="b-og"?"OG":"Secret";e.appendChild(b);}
+  e.appendChild(m);
+  el.appendChild(e);el.scrollTop=el.scrollHeight;
+  if(type==="ok"){
+    if(logId==="logOg"){ogSent++;document.getElementById("ogSentCount").textContent=`${ogSent} enviados`;}
+    else{sent++;document.getElementById("sentCount").textContent=`${sent} enviados`;}
+  }
+}
+
+function setStatus(on,main,sub){
+  document.getElementById("dot").className=`dot${on?" on":""}`;
+  document.getElementById("statusMain").innerHTML=main;
+  document.getElementById("statusSub").textContent=sub||"";
+}
+
+function startProg(secs){
+  clearInterval(progInt);
+  const s=Date.now(),e=s+secs*1000;
+  const fill=document.getElementById("progFill");
+  fill.style.width="0%";
+  progInt=setInterval(()=>{
+    const p=Math.min(100,((Date.now()-s)/(e-s))*100);
+    fill.style.width=p+"%";
+    if(p>=100)clearInterval(progInt);
+  },500);
+}
+
+// ── Auto mode ────────────────────────────────────────
+function pickSecret(){
+  // 30% chance top, 70% common
+  const pool=rng()<.3?SECRETS_TOP:SECRETS_COMMON;
+  return pool[Math.floor(rng()*pool.length)];
+}
+function delayFor(isTop){
+  if(isTop)return Math.floor(rng()*(45-20)+20)*60; // 20–45 min
+  return Math.floor(rng()*(10-2)+2)*60;             // 2–10 min
+}
+
+async function sendOne(){
+  const url=getUrl("whAuto");if(!url)return;
+  const br=pickSecret();
+  addLog(`Enviando ${br.n}…`,"info","b-secret");
+  try{
+    await postWebhook(url,buildSecretEmbed(br));
+    addLog(`✓ ${br.n} enviado`,"ok","b-secret");
+  }catch(e){addLog(`✗ ${e.message}`,"err");}
+}
+
+function startAuto(){
+  const url=getUrl("whAuto");if(!url)return;
+  if(running)return;
+  running=true;
+  document.getElementById("btnAuto").disabled=true;
+  document.getElementById("btnStop").disabled=false;
+  schedule(url);
+}
+
+function schedule(url){
+  if(!running)return;
+  const br=pickSecret();
+  const isTop=SECRETS_TOP.some(s=>s.n===br.n);
+  const delay=delayFor(isTop);
+  const nextTime=new Date(Date.now()+delay*1000);
+
+  startProg(delay);
+  setStatus(true,
+    `Rodando — próximo: <strong>${br.n}</strong>`,
+    `daqui ~${fmtDelay(delay)} — ${fmt(nextTime)}`
+  );
+  addLog(`Próximo: ${br.n} em ~${fmtDelay(delay)}`,"info",isTop?"b-secret":"b-secret");
+
+  tid=setTimeout(async()=>{
+    if(!running)return;
+    try{
+      await postWebhook(url,buildSecretEmbed(br));
+      addLog(`✓ ${br.n} enviado`,"ok","b-secret");
+    }catch(e){addLog(`✗ ${e.message}`,"err");}
+    schedule(url);
+  },delay*1000);
+}
+
+function stopAuto(){
+  running=false;clearTimeout(tid);clearInterval(progInt);
+  document.getElementById("progFill").style.width="0%";
+  document.getElementById("btnAuto").disabled=false;
+  document.getElementById("btnStop").disabled=true;
+  setStatus(false,"Parado","");
+  addLog("Modo automático parado","info");
+}
+
+// ── OG tab ───────────────────────────────────────────
+function buildOGGrid(){
+  const grid=document.getElementById("ogGrid");
+  grid.innerHTML="";
+  OGS.forEach(og=>{
+    const c=document.createElement("div");
+    c.className="og-card";
+    c.innerHTML=`<img src="${og.img}" alt="${og.name}" onerror="this.style.display='none'">
+      <div class="og-name">${og.name}</div>
+      <div class="og-income">${og.income}</div>`;
+    c.onclick=()=>selectOG(og,c);
+    grid.appendChild(c);
+  });
+}
+
+function selectOG(og,card){
+  document.querySelectorAll(".og-card").forEach(c=>c.classList.remove("selected"));
+  card.classList.add("selected");
+  selectedOG=og;
+  document.getElementById("ogSelected").style.display="block";
+  document.getElementById("ogSelectedName").textContent=og.name;
+  document.getElementById("ogSelectedIncome").textContent=`${og.cost} — ${og.income}`;
+}
+
+async function sendOG(){
+  if(!selectedOG){addLog("Seleciona um OG primeiro","err",null,"logOg");return;}
+  const url=getUrl("whOg");if(!url)return;
+  addLog(`Enviando OG: ${selectedOG.name}…`,"info","b-og","logOg");
+  try{
+    await postWebhook(url,buildOGEmbed(selectedOG));
+    addLog(`✓ ${selectedOG.name} enviado`,"ok","b-og","logOg");
+  }catch(e){addLog(`✗ ${e.message}`,"err",null,"logOg");}
+}
+
+function unlockOG(){
+  const pass=document.getElementById("ogPass").value;
+  if(pass===OG_PASSWORD){
+    ogUnlocked=true;
+    document.getElementById("ogLocked").style.display="none";
+    document.getElementById("ogContent").style.display="block";
+    document.getElementById("ogPassErr").style.display="none";
+    buildOGGrid();
+    // preenche webhook se já tem
+    const saved=localStorage.getItem("wh");
+    if(saved)document.getElementById("whOg").value=saved;
+  }else{
+    document.getElementById("ogPassErr").style.display="block";
+  }
+}
+
+// ── Tab switch ───────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll(".tab").forEach((el,i)=>el.classList.toggle("active",["auto","og"][i]===t));
+  document.querySelectorAll(".panel").forEach((el,i)=>el.classList.toggle("active",["panel-auto","panel-og"][i]===`panel-${t}`));
+}
+
+// ── Persist URL ──────────────────────────────────────
+window.addEventListener("load",()=>{
+  const s=localStorage.getItem("wh");
+  if(s){document.getElementById("whAuto").value=s;if(document.getElementById("whOg"))document.getElementById("whOg").value=s;}
+});
+["whAuto","whOg"].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener("input",e=>localStorage.setItem("wh",e.target.value));
+});
+</script>
+</body>
+</html>
